@@ -1,0 +1,59 @@
+---
+name: Release
+
+# Not triggered on push. validate.yml calls this as a job that needs `test`, so
+# a commit that fails the hooks or the tests is never tagged or released. A
+# push trigger here would run alongside validate.yml and release regardless.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Semantic release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # The calling workflow must grant these too, because a called workflow can
+    # only narrow its caller's permissions.
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    # Shared with the badge job in validate.yml.
+    concurrency:
+      group: main-writes
+      cancel-in-progress: false
+
+    steps:
+      # The token stays in the checkout on purpose: python-semantic-release
+      # (PSR) pushes the release commit and tag with it. No later step uploads
+      # the checkout anywhere.
+      - name: Check out repository # zizmor: ignore[artipacked]
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # PSR reads the whole history and every tag to work out the next
+          # version. A shallow clone breaks it.
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Configure git identity for the release commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # This runs PSR with uvx instead of its Docker action. That image is
+      # built with `pip install --pre`, so it pulls in pre-release dependencies
+      # that cannot be pinned.
+      - name: Python Semantic Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uvx --from python-semantic-release==10.6.2 semantic-release -v version

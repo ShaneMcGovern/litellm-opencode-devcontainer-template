@@ -1,0 +1,176 @@
+---
+name: Validate
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  pre-commit:
+    name: Pre-commit (all hooks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The secret scan below reads every commit, not just the last one.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Cache pre-commit hook environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          # Without this, editing any hook revision is a cold miss and every
+          # environment rebuilds. The stale cache is still mostly valid.
+          restore-keys: |
+            pre-commit-
+
+      # The local ruff and mypy hooks shell out to `uv run`, so the project
+      # environment has to exist first.
+      - name: Install dependencies
+        run: uv sync --frozen --all-groups
+
+      # zizmor runs in its own step below, so only it gets the token.
+      - name: Run all pre-commit hooks
+        env:
+          SKIP: zizmor
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+
+      # With a token, zizmor also checks that each pinned SHA is a real commit
+      # of the action it names. The job's token can only read this repository.
+      - name: Check the workflows for security problems
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run pre-commit run zizmor --all-files
+
+      # The gitleaks hook in the "Run all pre-commit hooks" step scans staged
+      # changes only, and CI stages nothing. This scans every commit instead.
+      - name: Scan the whole history for secrets
+        run: uv run pre-commit run gitleaks-history --hook-stage manual
+
+  test:
+    name: Run tests
+    needs: pre-commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # python-version is left unset because uv reads .python-version, so CI
+      # uses the same interpreter as local runs.
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-groups
+
+      - name: Run tests
+        run: uv run pytest -v
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: error
+
+  # release.yml holds the release steps. Calling it here, after `test`, means
+  # only a commit that passed every hook and test gets released.
+  release:
+    name: Release
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    # zizmor flags this local call. actionlint rejects the form zizmor suggests,
+    # and a job-level call never reads files checked out at runtime anyway.
+    uses: ./.github/workflows/release.yml # zizmor: ignore[self-repository]
+
+  # This is a separate job, not a step in `test`, because `test` runs the
+  # project's own test code and this job holds contents: write on main. Merging
+  # them would hand that grant to whatever the tests execute. CONTRIBUTING.md
+  # says why the badge chain is here and what to delete to drop it.
+  #
+  # It waits for `release` so the release commit lands first; the
+  # `git pull --rebase` below then puts the badge commit on top of it.
+  # `!cancelled()` keeps a failed or skipped release from also blocking the
+  # badge.
+  badge:
+    name: Update coverage badge
+    needs: [test, release]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.test.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: write
+
+    # This group is shared with the release job, so the two cannot race each
+    # other pushing to main, even across back-to-back runs.
+    concurrency:
+      group: main-writes
+      cancel-in-progress: false
+
+    steps:
+      # Keep the token in the checkout, since the last step pushes with it.
+      # Nothing here uploads the checkout.
+      - name: Check out repository # zizmor: ignore[artipacked]
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      # Reuse what the test job measured instead of re-running the suite.
+      - name: Download coverage report
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: coverage
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-groups
+
+      # genbadge writes no trailing newline, and this job commits with no hooks
+      # installed. The printf adds the newline, so end-of-file-fixer does not
+      # fail later for everyone else.
+      - name: Regenerate the coverage badge
+        run: |
+          uv run genbadge coverage -i coverage.xml -o badges/coverage.svg
+          printf '\n' >> badges/coverage.svg
+
+      - name: Commit the badge if it changed
+        run: |
+          if git diff --quiet -- badges/coverage.svg; then
+            echo "Coverage badge unchanged; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add badges/coverage.svg
+          git commit -m "chore: update coverage badge [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
