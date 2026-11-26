@@ -1,0 +1,14 @@
+# gitleaks reads this file from the repository root. It keeps every built-in
+# rule and adds the one below.
+[extend]
+useDefault = true
+
+# A DeepSeek key is "sk-" and 32 lowercase hex characters. Other vendors also
+# start keys with "sk-", so a match is not always a DeepSeek key. The built-in
+# generic rule finds one only next to a word like "key" or "token", so a key
+# pasted on its own line would get through.
+[[rules]]
+id = "deepseek-api-key"
+description = "DeepSeek API key"
+regex = '''\bsk-[a-f0-9]{32}\b'''
+keywords = ["sk-"]
