@@ -1,0 +1,134 @@
+---
+default_install_hook_types: [pre-commit, commit-msg]
+
+# Without this, a hook with no explicit `stages` runs at every stage, so the
+# hygiene hooks would run again on COMMIT_EDITMSG for each commit and could
+# rewrite the message.
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: ^\.devcontainer/devcontainer\.json$
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # detect-private-key above only knows PEM blocks. gitleaks knows API key
+  # formats, Anthropic's among them. The first entry scans what a commit
+  # stages. CI has nothing staged, so it also runs the second entry, which
+  # scans every commit in the history: GitHub keeps a pushed secret even after
+  # a later commit removes it.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+      - id: gitleaks
+        alias: gitleaks-history
+        name: Detect hardcoded secrets (whole history)
+        entry: gitleaks git --redact --verbose
+        stages: [manual]
+
+  # pre-commit/mirrors-prettier is archived. This fork is still kept up to date.
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.6
+    hooks:
+      - id: prettier
+        types_or: [yaml, json]
+        # .copier-answers.yml is excluded because copier's to_nice_yaml writes
+        # single quotes where prettier wants double, so a `copier update` can
+        # bring back a diff this hook fights.
+        exclude: ^(\.devcontainer/devcontainer\.json|\.copier-answers\.yml)$
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+
+  # actionlint checks that the workflows are valid: syntax, expressions, job
+  # outputs. It also shellchecks `run:` blocks when shellcheck is on its PATH.
+  # The GitHub runner has it and the dev container does not, so that check runs
+  # only in CI.
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  # zizmor checks the workflows for security problems, including actions that
+  # are not pinned to a commit SHA. With a GitHub token (CI passes one) it
+  # also checks that each pinned SHA really belongs to the action's repository.
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.32.0
+    hooks:
+      - id: zizmor
+
+  # dockerfmt formats the Dockerfile and hadolint lints it. A rule hadolint
+  # should skip is switched off in the Dockerfile, above the line it applies
+  # to, with the reason.
+  - repo: https://github.com/reteps/dockerfmt
+    rev: v0.6.0
+    hooks:
+      - id: dockerfmt
+        args: [--indent=4, --newline, --write]
+
+  - repo: https://github.com/AleksaC/hadolint-py
+    rev: v2.15.1
+    hooks:
+      - id: hadolint
+
+  # GitHub reports a broken dependabot.yml only after it lands on main.
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.39.0
+    hooks:
+      - id: check-dependabot
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.49.1
+    hooks:
+      - id: markdownlint-fix
+        exclude: ^CHANGELOG\.md$
+
+  # This hook fails when uv.lock has drifted from pyproject.toml. CI installs
+  # with `uv sync --frozen`, which never checks, so nothing else catches it.
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.12.23
+    hooks:
+      - id: uv-lock
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+        require_serial: true
