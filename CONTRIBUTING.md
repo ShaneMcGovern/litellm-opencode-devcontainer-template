@@ -346,6 +346,8 @@ comments.
 - Write plainly. Use short sentences and common words.
 - Use plain ASCII. No em dashes, en dashes, curly quotes or arrow symbols.
   Use a hyphen, a colon or a new sentence instead.
+- Comment code only to point out something a reader wouldn't guess, in as
+  few words as it takes. Delete a comment that repeats what the code says.
 - Don't write the project's release version into the docs. A release rewrites
   `pyproject.toml`, `uv.lock` and `CHANGELOG.md`, not the docs, so a version
   written anywhere else goes stale.

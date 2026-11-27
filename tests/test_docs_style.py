@@ -1,8 +1,4 @@
-"""Check the doc writing rules that a test can catch.
-
-CONTRIBUTING.md's "Writing style" section has the full set. Only the two
-mechanical rules live here: plain ASCII, and no release version.
-"""
+"""Check the doc rules a test can catch. CONTRIBUTING.md has the rest."""
 
 import tomllib
 from pathlib import Path
@@ -24,8 +20,7 @@ def test_document_is_plain_ascii(name: str) -> None:
 
 @pytest.mark.parametrize("name", DOCUMENTS)
 def test_document_does_not_hardcode_the_release_version(name: str) -> None:
-    # A release rewrites pyproject.toml, uv.lock and CHANGELOG.md, not these
-    # docs, so a version written here goes stale after the next release.
+    # A release never rewrites these docs.
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
     text = (ROOT / name).read_text(encoding="utf-8")

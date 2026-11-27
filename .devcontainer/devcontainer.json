@@ -1,7 +1,5 @@
 {
-  // This file holds only the VS Code pieces. The setup steps run in
-  // entrypoint.sh, not in VS Code hooks, so `docker compose up` alone is
-  // enough.
+  // Setup lives in entrypoint.sh, so plain `docker compose up` works too.
   "name": "litellm-opencode-devcontainer-template",
 
   "dockerComposeFile": "compose.yaml",
@@ -17,14 +15,10 @@
       ],
       "settings": {
         "python.defaultInterpreterPath": "/app/.venv/bin/python",
-        // Use the mypy from .venv, so the editor runs the same version and
-        // settings as pre-commit and CI.
+        // Use the mypy in .venv, so it matches pre-commit and CI.
         "mypy-type-checker.importStrategy": "fromEnvironment",
         "python.testing.pytestEnabled": true,
-        // coverage.py and the debugger both work by tracing, and addopts
-        // carries --cov, so breakpoints in tests are silently skipped. This
-        // applies to editor runs only; CI and `uv run pytest` still measure
-        // coverage.
+        // Coverage tracing makes the debugger skip breakpoints.
         "python.testing.pytestArgs": ["--no-cov"],
         "editor.formatOnSave": true,
         "[python]": {
@@ -37,8 +31,7 @@
     }
   },
 
-  // VS Code would otherwise auto-forward the LiteLLM proxy (entrypoint.sh) to
-  // the host's localhost:4000. Only OpenCode inside the container needs it.
+  // Keep the LiteLLM proxy inside the container.
   "portsAttributes": {
     "4000": { "onAutoForward": "ignore" }
   },

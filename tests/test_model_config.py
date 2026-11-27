@@ -1,7 +1,6 @@
-"""Check that the OpenCode and LiteLLM settings agree with each other.
+"""Check that the OpenCode, LiteLLM and compose settings agree.
 
-CI never builds the container or runs OpenCode, so a mismatch between these
-files would otherwise show up only at run time, inside a session.
+CI never runs OpenCode, so a mismatch would show only in a session.
 """
 
 import json
@@ -36,9 +35,8 @@ def _opencode_models() -> set[str]:
 
 
 def test_both_files_list_the_same_models() -> None:
-    # A model only in opencode.json shows up in /models and then fails every
-    # request with "Invalid model name". One only in litellm.yaml can't be
-    # picked at all.
+    # A model only in opencode.json shows in /models but fails with "Invalid
+    # model name".
     assert _opencode_models() == _litellm_models()
 
 
@@ -64,8 +62,7 @@ def test_every_fallback_names_a_real_model() -> None:
 
 
 def test_every_key_reaches_the_container() -> None:
-    # compose.yaml passes only the variables it lists, so a key that is in
-    # .env but missing there never reaches LiteLLM.
+    # compose.yaml passes only the variables it lists.
     compose = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
     passed = {
         item.split("=", 1)[0] for item in compose["services"]["app"]["environment"]
@@ -76,9 +73,8 @@ def test_every_key_reaches_the_container() -> None:
 
 
 def test_claude_model_names_keep_prompt_caching() -> None:
-    # OpenCode adds Anthropic's cache markers only when the model name
-    # contains "claude" or "anthropic". Without them, every request pays full
-    # price for the whole conversation.
+    # OpenCode adds prompt cache markers only when the name has "claude" or
+    # "anthropic".
     for entry in _litellm()["model_list"]:
         if entry["litellm_params"]["model"].startswith("anthropic/"):
             name = entry["model_name"]

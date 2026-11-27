@@ -1,5 +1,3 @@
-"""Tests for the entry point."""
-
 import pytest
 
 from main import main
