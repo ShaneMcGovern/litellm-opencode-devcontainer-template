@@ -28,7 +28,8 @@ edit -> git commit -> hooks run -> push -> CI -> merge to main -> release
    git checkout -b feature/short-description
    ```
 
-2. Make the change, with tests.
+2. Make the change, with tests. Keep a PR to one change, and put anything
+   extra in a separate PR.
 
 3. Run the gate:
 
@@ -235,6 +236,24 @@ ruff and mypy are not pinned by hand. They are locked in `uv.lock`, so
 Dependabot's `uv` ecosystem updates them.
 
 ## The OpenCode and LiteLLM setup
+
+Three rules hold for every change here:
+
+- **OpenCode talks only to the LiteLLM proxy.** Add a model to
+  `.devcontainer/litellm.yaml` and under `provider.litellm.models` in
+  `opencode.json`, never as another OpenCode provider.
+  `enabled_providers` in `opencode.json` stays `["litellm"]` and `share` stays
+  `"disabled"`. `tests/test_model_config.py` checks both.
+- **Each key goes only to its own vendor.** Pass a new key into the container
+  by its own name in `.devcontainer/compose.yaml`. Never pass
+  `ANTHROPIC_AUTH_TOKEN` or `ANTHROPIC_BASE_URL`. Some tools point these two
+  names at DeepSeek: the key in `ANTHROPIC_AUTH_TOKEN` and its URL in
+  `ANTHROPIC_BASE_URL`. LiteLLM reads both for its Anthropic models, so
+  Claude requests could go to DeepSeek, or your DeepSeek key to Anthropic.
+- **Every model falls back to a model from the other vendor**, so an outage or
+  a bad key doesn't stop work. Keep that when you add a model. The switch is
+  silent, as [Known limitations](README.md#known-limitations) in the README
+  explains.
 
 These files must agree with each other:
 
