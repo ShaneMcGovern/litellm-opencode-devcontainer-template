@@ -1,7 +1,7 @@
 [project]
 name = "litellm-opencode-devcontainer-template"
 # Start at 0.0.0, so the first automated release can only move the version up.
-version = "0.1.0"
+version = "0.2.0"
 description = "A dev container for the OpenCode coding agent, with a local LiteLLM proxy."
 readme = "README.md"
 license = "MIT"
