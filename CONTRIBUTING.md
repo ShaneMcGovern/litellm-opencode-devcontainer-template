@@ -229,8 +229,20 @@ above the Node and LiteLLM `ARG` lines say what must change with them.
 Dependabot keeps the base image on Python 3.13. `dependabot.yml` ignores
 minor and major Python bumps, so moving to a new minor version is a change you
 make on purpose. When Dependabot proposes a patch bump, also bump
-`.python-version` and the Python badge in `README.md` in the same PR, because
-Dependabot touches neither.
+`.python-version`, `python_version` in `.copier-answers.yml` and the Python
+badge in `README.md` in the same PR, because Dependabot touches none of them.
+The header of `.copier-answers.yml` says not to edit it by hand, but this one
+value has to match the image, or `copier update` renders the old version.
+
+The uv image needs the same care. When Dependabot bumps it, set the `version`
+of every `setup-uv` step in `.github/workflows/` and the `rev` of the
+`uv-pre-commit` hook to the same release in that PR, so CI runs the same uv as
+the container. The pin is not `required-version` in `pyproject.toml`, because
+that would also stop Dependabot's own uv from running the `uv` updates.
+`tests/test_versions.py` fails until the uv and Python pins all match,
+including both places the badge names the version. `pre-commit autoupdate`
+also moves the `uv-pre-commit` hook, so set its `rev` back to the uv image's
+version afterward.
 
 ruff and mypy are not pinned by hand. They are locked in `uv.lock`, so
 Dependabot's `uv` ecosystem updates them.
