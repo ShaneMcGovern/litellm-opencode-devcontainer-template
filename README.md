@@ -1,7 +1,7 @@
 # OpenCode Dev Container
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python 3.13.15](https://img.shields.io/badge/python-3.13.15-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.13.17](https://img.shields.io/badge/python-3.13.17-blue.svg)](https://www.python.org/downloads/)
 [![Validate](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/actions/workflows/validate.yml/badge.svg)](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/actions/workflows/validate.yml)
 [![Coverage](badges/coverage.svg)](badges/coverage.svg)
 [![uv](https://img.shields.io/badge/uv-package%20manager-green.svg)](https://github.com/astral-sh/uv)

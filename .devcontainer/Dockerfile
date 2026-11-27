@@ -8,7 +8,7 @@ FROM ghcr.io/astral-sh/uv:0.13.10@sha256:a3ea1357342c1a4bf9a0c53a3deb1b55379aefa
 # security rebuild. The digest fixes the exact image. It is the multi-arch
 # index digest, so both amd64 and arm64 work. Dependabot proposes tag and
 # digest together.
-FROM python:3.13.15-slim-trixie@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b
+FROM python:3.13.17-slim-trixie@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962
 
 # The base already ships a trust store, and the Node tarball below is fetched
 # through Python rather than curl, so neither ca-certificates nor curl is

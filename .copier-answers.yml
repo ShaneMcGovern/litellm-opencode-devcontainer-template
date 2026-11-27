@@ -10,5 +10,5 @@ license: MIT
 project_description: A dev container for the OpenCode coding agent, with a local LiteLLM proxy.
 project_name: LiteLLM OpenCode Devcontainer Template
 project_slug: litellm-opencode-devcontainer-template
-python_version: 3.13.15
+python_version: 3.13.17
 use_semantic_release: true
