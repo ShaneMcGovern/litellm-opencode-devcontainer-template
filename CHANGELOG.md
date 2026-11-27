@@ -6,6 +6,29 @@ by hand. Each release inserts its own entry below the marker.
 
 <!-- version list -->
 
+## v0.3.0 (2026-11-27)
+
+### Features
+
+- **litellm**: Add the proxy model list and fallbacks
+  ([#12](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/pull/12),
+  [`6830571`](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/commit/68305717db4e082e495025c9a8a8cbe9dc5949bc))
+
+- **litellm**: Send OpenCode through a local LiteLLM proxy
+  ([#12](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/pull/12),
+  [`6830571`](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/commit/68305717db4e082e495025c9a8a8cbe9dc5949bc))
+
+- **opencode**: Use only the local proxy
+  ([#12](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/pull/12),
+  [`6830571`](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/commit/68305717db4e082e495025c9a8a8cbe9dc5949bc))
+
+### Testing
+
+- Check that the OpenCode and LiteLLM configs agree
+  ([#12](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/pull/12),
+  [`6830571`](https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template/commit/68305717db4e082e495025c9a8a8cbe9dc5949bc))
+
+
 ## v0.2.0 (2026-11-27)
 
 ### Features
