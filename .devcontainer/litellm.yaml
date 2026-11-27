@@ -1,0 +1,35 @@
+# LiteLLM proxy config. entrypoint.sh starts the proxy on 127.0.0.1:4000, and
+# opencode.json at the repo root points OpenCode at it.
+#
+# To add a model: add an entry here, add the same model_name (with its limits)
+# under provider.litellm.models in opencode.json, and put its key in
+# .devcontainer/.env (plus a matching line in compose.yaml's environment).
+# Current model IDs are listed in LiteLLM's model map:
+# https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
+model_list:
+  - model_name: deepseek-v4-pro
+    litellm_params:
+      model: deepseek/deepseek-v4-pro
+      api_key: os.environ/DEEPSEEK_API_KEY
+  # Keep "claude" in the names of Claude models. OpenCode adds Anthropic's
+  # prompt-cache markers only when the name contains "claude" or "anthropic".
+  - model_name: claude-opus
+    litellm_params:
+      model: anthropic/claude-opus-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+  - model_name: deepseek-flash
+    litellm_params:
+      model: deepseek/deepseek-flash
+      api_key: os.environ/DEEPSEEK_API_KEY
+
+router_settings:
+  # If a model errors out, retry the request on the next one in its list.
+  fallbacks:
+    - deepseek-v4-pro: [claude-opus]
+    - claude-opus: [deepseek-v4-pro]
+    - claude-sonnet: [deepseek-flash]
+    - deepseek-flash: [claude-sonnet]
