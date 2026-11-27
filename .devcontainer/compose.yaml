@@ -1,0 +1,76 @@
+---
+# Without a name, `docker compose` names the project after the folder this
+# file is in, so it becomes "devcontainer". Every project made from this
+# template would then share one set of named volumes.
+name: litellm-opencode-devcontainer-template
+
+services:
+  app:
+    # The context is the repo root, so the COPY path matches the repo layout and
+    # the root .dockerignore applies. The Dockerfile lives under .devcontainer/
+    # to keep these files together.
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+
+    volumes:
+      - ..:/app
+
+      # Named volumes, so they survive `docker compose down` and a rebuild. The
+      # venv is a volume, not part of the bind mount. That keeps the
+      # container's Linux build apart from any venv made on the host, and from
+      # the host's file permissions. pre-commit's cache is the expensive one.
+      # Without it, every new container rebuilds each hook's isolated
+      # environment from scratch.
+      - venv:/app/.venv
+      - uv-cache:/home/developer/.cache/uv
+      - precommit-cache:/home/developer/.cache/pre-commit
+      - gh-config:/home/developer/.config/gh
+
+    working_dir: /app
+    init: true
+
+    # Use the list form. A bare name passes the variable through only when it
+    # is set. The map form's `${VAR:-}` sets an empty string instead. Git reads
+    # GIT_AUTHOR_NAME and GIT_AUTHOR_EMAIL before user.name and user.email. An
+    # empty name fails every commit with "fatal: empty ident name". An empty
+    # email records a blank author email.
+    #
+    # entrypoint.sh cannot clear an empty value either, because VS Code
+    # terminals and `docker exec` bypass the entrypoint.
+    environment:
+      - GIT_AUTHOR_NAME
+      - GIT_AUTHOR_EMAIL
+      # Provider keys for the LiteLLM proxy (.devcontainer/litellm.yaml). Same
+      # bare-name form, so a key left out of .env stays unset, not empty.
+      - ANTHROPIC_API_KEY
+      - DEEPSEEK_API_KEY
+      - GH_CONFIG_DIR=/home/developer/.config/gh
+      - UV_CACHE_DIR=/home/developer/.cache/uv
+      - PRE_COMMIT_HOME=/home/developer/.cache/pre-commit
+      # package = false keeps src/ off sys.path, so `python -m main` fails
+      # without this. pytest has its own `pythonpath` setting; nothing else
+      # does. The path is absolute because a relative entry would follow the
+      # caller's directory.
+      - PYTHONPATH=/app/src
+
+    healthcheck:
+      # Test the interpreter binary, not the directory. The Dockerfile
+      # pre-creates /app/.venv, so a directory test would pass before uv sync
+      # populates it.
+      test: ["CMD", "test", "-x", "/app/.venv/bin/python"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # A cold sync after `down -v` can take more than two minutes, and too
+      # short a grace period flips the container to unhealthy mid-start.
+      start_period: 180s
+
+volumes:
+  venv:
+  uv-cache:
+  precommit-cache:
+  gh-config:
