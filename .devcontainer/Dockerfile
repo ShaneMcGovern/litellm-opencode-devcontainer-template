@@ -2,7 +2,7 @@
 
 # A named build stage keeps the uv version in a literal FROM tag. Dependabot's
 # docker ecosystem tracks those, but not an inline `COPY --from=...:X`.
-FROM ghcr.io/astral-sh/uv:0.12.23@sha256:61d393e44e249f2e4b526b6c7ddcecce245946826e608e11c93ad4f5bba55b21 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.10@sha256:a3ea1357342c1a4bf9a0c53a3deb1b55379aefa037338d8113d5771efa01774f AS uv
 
 # The tag alone moves: Docker re-publishes it for each Debian point release and
 # security rebuild. The digest fixes the exact image. It is the multi-arch
