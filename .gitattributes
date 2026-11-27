@@ -1,4 +1,2 @@
-# `eol=lf` pins the working tree as well as the repository. `text=auto` alone
-# still checks out CRLF on Windows. The image copies entrypoint.sh from that
-# checkout, and bash fails on the CR at the end of each line.
+# Without eol=lf, Windows checks out entrypoint.sh with CRLF and bash fails.
 * text=auto eol=lf

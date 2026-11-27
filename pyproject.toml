@@ -1,26 +1,20 @@
 [project]
 name = "litellm-opencode-devcontainer-template"
-# Start at 0.0.0, so the first automated release can only move the version up.
 version = "0.3.0"
 description = "A dev container for the OpenCode coding agent, with a local LiteLLM proxy."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Shane McGovern", email = "shanemcgovern@protonmail.com" }]
-# Lower this floor by hand if the project should support older Python versions
-# than the one in .python-version.
 requires-python = ">=3.13"
 dependencies = []
 
-# Nothing reads this while package = false. It is here so the repository link
-# lives in the project file, not only in the README.
 [project.urls]
 Repository = "https://github.com/ShaneMcGovern/litellm-opencode-devcontainer-template"
 
-# This is an app, not a package, so there is no [build-system] and no
-# [project.scripts]. With package = false, uv never installs the project, so
-# src/ is not on sys.path. `pythonpath` below adds it for tests, and PYTHONPATH
-# in compose.yaml adds it for everything else.
+# With package = false, uv never installs the project, so there is no
+# [build-system]. pytest's pythonpath and PYTHONPATH in compose.yaml put
+# src/ on sys.path.
 [tool.uv]
 package = false
 
@@ -38,8 +32,6 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# Without this, tests/test_smoke.py fails at collection with
-# ModuleNotFoundError wherever PYTHONPATH is not set, such as CI.
 pythonpath = ["src"]
 addopts = "--cov --cov-report=xml --cov-report=term"
 
@@ -52,13 +44,10 @@ exclude_also = ['if __name__ == "__main__":']
 
 [tool.ruff]
 line-length = 88
-# target-version stays unset so ruff infers it from requires-python, which
-# keeps the two from drifting apart.
+# target-version is unset so ruff reads it from requires-python.
 
 [tool.ruff.lint]
-# flake8-executable (EXE) is left out. Its rules check the file's executable
-# bit. A Windows or WSL2 bind mount shows 0755 where git tracks 0644, so EXE002
-# fails in the container but passes in CI, even on files that are not scripts.
+# EXE is left out because a Windows bind mount shows every file as executable.
 select = [
     "E",
     "W",
@@ -76,7 +65,6 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Tests often accept fixtures they never reference directly.
 "tests/*" = ["ARG"]
 
 [tool.ruff.format]
@@ -86,22 +74,19 @@ docstring-code-format = true
 files = ["src", "tests"]
 strict = true
 warn_unreachable = true
-# python_version stays unset so mypy infers it from the interpreter it runs
-# under, and uv guarantees that matches .python-version.
+# python_version is unset so mypy uses the interpreter uv picks from
+# .python-version.
 
 [tool.semantic_release]
-# There is no version_variables entry. An __version__ would be a second copy of
-# the version, and since the project is never installed, importlib.metadata
-# could not read it at run time either.
 version_toml = ["pyproject.toml:project.version"]
-# This isn't a build. It re-locks so uv.lock records the version that
-# python-semantic-release (PSR) just wrote. `assets` adds that file to the
-# release commit. Without it, the uv-lock hook fails in CI on the next push. To
-# publish to PyPI, restore [build-system] and make this "uv lock && uv build".
+# This is not a build. It re-locks so uv.lock gets the new version, and
+# assets adds it to the release commit. If either is missing, the uv-lock
+# hook fails on the next push. To publish to PyPI, add a [build-system] and
+# make this "uv lock && uv build".
 build_command = "uv lock"
 assets = ["uv.lock"]
 commit_parser = "conventional"
-# Set this false and PSR's first release jumps to 1.0.0.
+# Set this false and the next release jumps to 1.0.0.
 allow_zero_version = true
 commit_message = "chore(release): {version} [skip ci]"
 tag_format = "v{version}"

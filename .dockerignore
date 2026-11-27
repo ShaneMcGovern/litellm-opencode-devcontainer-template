@@ -1,6 +1,5 @@
-# The image copies only entrypoint.sh; everything else arrives through the bind
-# mount. The cache patterns need **/ because those directories appear beside
-# the code, not at the repo root.
+# The cache patterns need **/ so they also match folders below the repo
+# root.
 .git
 .venv
 .github

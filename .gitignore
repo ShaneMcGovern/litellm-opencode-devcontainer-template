@@ -1,14 +1,8 @@
-# Most of these lines come from GitHub's Python.gitignore. That file has about
-# 100 rules, many for tools this template never uses, and it has no .DS_Store
-# or Thumbs.db.
-
 __pycache__/
 *.py[codz]
 *$py.class
 *.so
 
-# Nothing here builds a wheel. These cover a PyPI build, in case someone sets
-# one up.
 build/
 dist/
 sdist/
@@ -23,7 +17,6 @@ venv/
 .env
 .envrc
 
-# badges/coverage.svg stays committed; coverage.xml is only its input.
 .pytest_cache/
 .coverage
 .coverage.*
