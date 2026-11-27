@@ -1,15 +1,10 @@
 ---
 version: 2
 
-# Without a set prefix, Dependabot guesses its message style from the history,
-# so the result can change. A plain "Bump x from 1 to 2" is not a Conventional
-# Commit. The Commit messages workflow rejects it, and the release tool skips
-# it. The "chore" prefix passes the check without making a release. The block
-# is repeated for each ecosystem so each entry reads on its own.
-#
-# Each ecosystem waits seven days after a release before proposing it. A bad
-# release is usually pulled within days, so the wait lets most of them be
-# pulled before they reach this repo. zizmor checks that the cooldown is set.
+# Without a set prefix, Dependabot may write "Bump x from 1 to 2", which the
+# Commit messages check rejects. The "chore" prefix passes and does not cut a
+# release. The cooldown gives a bad release a week to be pulled, and zizmor
+# checks that it is set.
 
 updates:
   - package-ecosystem: "github-actions"
@@ -31,10 +26,9 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
-    # The project is on Python 3.13 (.python-version), so the base image stays
-    # on 3.13.x: a minor or major bump is a deliberate, manual change. Patch
-    # and digest updates still come through. A patch PR should also bump
-    # .python-version, which Dependabot does not touch.
+    # Minor and major Python bumps are done by hand. A patch PR should also
+    # bump the other Python pins, which Dependabot does not touch.
+    # CONTRIBUTING.md lists them.
     ignore:
       - dependency-name: "python"
         update-types:

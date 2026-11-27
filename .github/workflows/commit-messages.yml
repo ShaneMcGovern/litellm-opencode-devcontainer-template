@@ -1,16 +1,12 @@
 ---
 name: Commit messages
 
-# The commit-msg hook only runs on the machine that makes a commit, so a commit
-# made anywhere else, such as on the GitHub website, is checked here instead.
-# Every commit message on the branch counts, except merge commits. A squash
-# merge copies them all into the commit on main, and a stray "BREAKING CHANGE:"
-# line there forces a major release. A merge or rebase merge lands them as they
-# are. A squash merge also uses the pull request title as the subject, so the
-# title is checked too.
-#
-# This is its own workflow because of `edited`. That event reruns it after a
-# title change, and it should not rerun the hooks and tests too.
+# The commit-msg hook only runs on the machine that makes a commit, so a
+# commit made on the GitHub website skips it. A squash merge puts every
+# branch message and the pull request title into the commit on main, where a
+# stray "BREAKING CHANGE:" line forces a major release, so all of them are
+# checked here. This is its own workflow so that editing the title does not
+# rerun the tests.
 on:
   pull_request:
     branches:
@@ -29,7 +25,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The loop below needs the base commit and the branch history.
+          # The loop below needs the branch history.
           fetch-depth: 0
           persist-credentials: false
 
@@ -42,9 +38,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --all-groups
 
-      # `pre-commit run --all-files` skips the commit-msg stage, because it
-      # needs one message at a time. So each message goes through that stage
-      # here, exactly as the hook would check it on a commit.
+      # `pre-commit run --all-files` in validate.yml skips the commit-msg
+      # stage, so each message goes through that stage here.
       - name: Check each non-merge commit message on the branch
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -61,8 +56,7 @@ jobs:
           done < <(git rev-list --no-merges "$BASE_SHA..$HEAD_SHA")
           exit "$status"
 
-      # The title arrives through `env`, never written into the script itself,
-      # so a title cannot inject shell commands.
+      # The title goes through `env`, so it cannot inject shell commands.
       - name: Check the pull request title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}

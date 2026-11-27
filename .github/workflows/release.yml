@@ -1,9 +1,8 @@
 ---
 name: Release
 
-# Not triggered on push. validate.yml calls this as a job that needs `test`, so
-# a commit that fails the hooks or the tests is never tagged or released. A
-# push trigger here would run alongside validate.yml and release regardless.
+# validate.yml calls this after the hooks and tests pass. A push trigger
+# would run alongside validate.yml and could release a commit that failed them.
 on:
   workflow_call:
 
@@ -16,8 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    # The calling workflow must grant these too, because a called workflow can
-    # only narrow its caller's permissions.
+    # validate.yml must grant these too, since a called workflow can't widen
+    # its caller's permissions.
     permissions:
       contents: write
       issues: write
@@ -29,14 +28,12 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      # The token stays in the checkout on purpose: python-semantic-release
-      # (PSR) pushes the release commit and tag with it. No later step uploads
-      # the checkout anywhere.
+      # The token stays, since semantic-release pushes the release with it.
+      # No later step uploads the checkout.
       - name: Check out repository # zizmor: ignore[artipacked]
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # PSR reads the whole history and every tag to work out the next
-          # version. A shallow clone breaks it.
+          # python-semantic-release needs every commit and tag.
           fetch-depth: 0
 
       - name: Set up uv
@@ -50,9 +47,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      # This runs PSR with uvx instead of its Docker action. That image is
-      # built with `pip install --pre`, so it pulls in pre-release dependencies
-      # that cannot be pinned.
+      # This runs python-semantic-release with uvx, not its Docker action,
+      # which installs pre-release dependencies that cannot be pinned.
       - name: Python Semantic Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
